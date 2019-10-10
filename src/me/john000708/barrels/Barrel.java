@@ -1,5 +1,18 @@
 package me.john000708.barrels;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ClickAction;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.InvUtils;
@@ -13,20 +26,7 @@ import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.handlers.BlockTicker;
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenuPreset;
-import me.mrCookieSlime.Slimefun.api.inventory.ItemManipulationEvent;
 import me.mrCookieSlime.Slimefun.api.item_transport.ItemTransportFlow;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by John on 06.05.2016.
@@ -42,7 +42,7 @@ public class Barrel extends SlimefunItem {
     private int capacity;
     private boolean allowDisplayItem;
 
-    public Barrel(Category category, ItemStack item, String name, RecipeType recipeType, final ItemStack[] recipe, int capacity) {
+    protected Barrel(Category category, ItemStack item, String name, RecipeType recipeType, final ItemStack[] recipe, int capacity) {
         super(category, item, name, recipeType, recipe);
 
         this.capacity = capacity;
@@ -57,14 +57,9 @@ public class Barrel extends SlimefunItem {
             @Override
             public void newInstance(final BlockMenu menu, final Block b) {
 
-                registerEvent(new ItemManipulationEvent() {
-
-                    @Override
-                    public ItemStack onEvent(int i, ItemStack itemStack, ItemStack itemStack1) {
-                        updateBarrel(b);
-                        return itemStack1;
-                    }
-
+                registerEvent((slot, prev, next) -> {
+                	 updateBarrel(b);
+                     return next;
                 });
 
                 if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) {
@@ -95,7 +90,7 @@ public class Barrel extends SlimefunItem {
             public int[] getSlotsAccessedByItemTransport(BlockMenu menu, ItemTransportFlow flow, ItemStack item) {
                 if (flow == ItemTransportFlow.INSERT) {
                     if (BlockStorage.getLocationInfo(menu.getLocation(), "storedItems") != null)
-                        return isSimiliar(item, menu.getItemInSlot(22)) ? getInputSlots() : new int[0];
+                        return isSimilar(item, menu.getItemInSlot(22)) ? getInputSlots() : new int[0];
                     else return getInputSlots();
                 } 
                 else return getOutputSlots();
@@ -136,7 +131,8 @@ public class Barrel extends SlimefunItem {
                     b.getWorld().dropItem(b.getLocation(), SlimefunItem.getByID("BIO_PROTECTION").getItem());
 
                 if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) return true;
-                int storedAmount = Integer.valueOf(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
+                //There's no need to box the integer.
+                int storedAmount = Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
 
                 ItemStack item = inv.getItemInSlot(22);
                 ItemMeta meta = item.getItemMeta();
@@ -186,20 +182,18 @@ public class Barrel extends SlimefunItem {
             }
 
             @Override
-            public void uniqueTick() {
-
-            }
-
-            @Override
             public void tick(Block block, SlimefunItem slimefunItem, Config config) {
                 updateBarrel(block);
-
 
                 if (Barrels.displayItem) {
                     allowDisplayItem = block.getRelative(BlockFace.UP).getType() == Material.AIR;
                     DisplayItem.updateDisplayItem(block, getCapacity(block), allowDisplayItem);
                 }
             }
+
+			@Override
+			public void uniqueTick() {
+			}
         });
 
         super.register(false);
@@ -214,7 +208,8 @@ public class Barrel extends SlimefunItem {
             BlockStorage.addBlockInfo(b, "capacity", String.valueOf(this.capacity));
         }
 
-        return Integer.valueOf(BlockStorage.getLocationInfo(b.getLocation(), "capacity"));
+        //There's no need to box the integer.
+        return Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "capacity"));
     }
 
     public int[] getInputSlots() {
@@ -228,19 +223,22 @@ public class Barrel extends SlimefunItem {
     private ItemStack getCapacityItem(Block b) {
         StringBuilder bar = new StringBuilder();
 
-        int storedItems = Integer.valueOf(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
-
+        //There's no need to box the integer.
+        int storedItems = Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
         float percentage = Math.round((float) storedItems / (float) getCapacity(b) * 100.0F);
 
         bar.append("&8[");
 
         if (percentage < 25) {
             bar.append("&2");
-        } else if (percentage < 50) {
+        } 
+        else if (percentage < 50) {
             bar.append("&a");
-        } else if (percentage < 75) {
+        } 
+        else if (percentage < 75) {
             bar.append("&e");
-        } else {
+        } 
+        else {
             bar.append("&c");
         }
 
@@ -271,11 +269,12 @@ public class Barrel extends SlimefunItem {
             if (inventory.getItemInSlot(slot) != null) {
                 ItemStack input = inventory.getItemInSlot(slot);
 
-                if (isSimiliar(input, inventory.getItemInSlot(22))) {
+                if (isSimilar(input, inventory.getItemInSlot(22))) {
                     if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) {
                         BlockStorage.addBlockInfo(b, "storedItems", "1");
                     }
-                    int storedAmount = Integer.valueOf(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
+                    //There's no need to box the integer.
+                    int storedAmount = Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
 
                     if (storedAmount < getCapacity(b)) {
                         if (storedAmount + input.getAmount() > getCapacity(b)) {
@@ -288,7 +287,8 @@ public class Barrel extends SlimefunItem {
                             inventory.replaceExistingItem(4, getCapacityItem(b), false);
                         }
                     }
-                } else if (inventory.getItemInSlot(22).getType() == Material.BARRIER) {
+                }
+                else if (inventory.getItemInSlot(22).getType() == Material.BARRIER) {
                     ItemStack stack = input.clone();
                     List<String> lore = (stack.hasItemMeta() && stack.getItemMeta().hasLore()) ? stack.getItemMeta().getLore() : new ArrayList<String>();
                     lore.add(LORE_DATA);
@@ -306,27 +306,21 @@ public class Barrel extends SlimefunItem {
 
         if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) return;
 
-        int stored = Integer.valueOf(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
+        //There's no need to box the integer.
+        int stored = Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
         ItemStack output = inventory.getItemInSlot(22).clone();
 
         if (inventory.getItemInSlot(getOutputSlots()[0]) != null) {
-            if (!isSimiliar(inventory.getItemInSlot(getOutputSlots()[0]), output)) {
+            if (!isSimilar(inventory.getItemInSlot(getOutputSlots()[0]), output)) {
                 return;
             }
 
             int requested = output.getMaxStackSize() - inventory.getItemInSlot(getOutputSlots()[0]).getAmount();
 
-            if (stored >= requested) {
-                output.setAmount(requested);
-            } else {
-                output.setAmount(stored);
-            }
-        } else {
-            if (stored > output.getMaxStackSize()) {
-                output.setAmount(output.getMaxStackSize());
-            } else {
-                output.setAmount(stored);
-            }
+            output.setAmount(Math.min(stored, requested));
+        } 
+        else {
+            output.setAmount(Math.min(stored, output.getMaxStackSize()));
         }
 
         ItemMeta meta = output.getItemMeta();
@@ -348,7 +342,8 @@ public class Barrel extends SlimefunItem {
 
         BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(stored - output.getAmount()));
 
-        pushItems(b, new ItemStack[]{output});
+        // There's no need to create an array in here.
+        pushItems(b, output);
 
         if ((stored - output.getAmount()) <= 0) {
             BlockStorage.addBlockInfo(b, "storedItems", null);
@@ -378,7 +373,7 @@ public class Barrel extends SlimefunItem {
         preset.addMenuClickHandler(22, (Player player, int i, ItemStack itemStack, ClickAction clickAction) -> false);
     }
 
-    private boolean isSimiliar(ItemStack i1, ItemStack i2) {
+    private boolean isSimilar(ItemStack i1, ItemStack i2) {
         if (i1 == null) return false;
         if (i2 == null) return false;
 

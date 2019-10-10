@@ -5,3 +5,4 @@
 /target/
 /.idea/
 Barrels.iml
+dependency-reduced-pom.xml
