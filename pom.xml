@@ -56,29 +56,6 @@
     			<artifactId>maven-shade-plugin</artifactId>
     			<version>3.2.1</version>
 
-    			<configuration>
-    				<filters>
-      					<filter>
-    						<artifact>com.github.thebusybiscuit:CS-CoreLib2</artifact>
-    						<includes>
-    							<include>**/cscorelib2/updater/**</include>
-    						</includes>
-  						</filter>
-      				</filters>
-      					
-      				<relocations>
-      					<relocation>
-            				<pattern>org.bstats</pattern>
-            				<shadedPattern>me.john000708.barrels.bstats</shadedPattern>
-          				</relocation>
-          				
-        				<relocation>
-          					<pattern>io.github.thebusybiscuit.cscorelib2</pattern>
-          					<shadedPattern>me.john000708.barrels.cscorelib2</shadedPattern>
-      					</relocation>
-      				</relocations>
-    			</configuration>
-
     			<executions>
       				<execution>
         				<phase>package</phase>
@@ -100,25 +77,14 @@
         <dependency>
 	        <groupId>com.github.TheBusyBiscuit</groupId>
 	        <artifactId>CS-CoreLib</artifactId>
-	        <version>LATEST</version>
+	        <version>6e17183656</version>
 	    </dependency>
-        <dependency>
-	    	<groupId>com.github.TheBusyBiscuit</groupId>
-	   		<artifactId>Slimefun4</artifactId>
-	   		<version>3400746c34</version>
-  			<scope>provided</scope>
-	    </dependency>
-        <dependency>
-  			<groupId>com.github.thebusybiscuit</groupId>
-  			<artifactId>CS-CoreLib2</artifactId>
-  			<version>0.3.7</version>
-  			<scope>compile</scope>
-		</dependency>
 		<dependency>
-  			<groupId>org.bstats</groupId>
-  			<artifactId>bstats-bukkit</artifactId>
-  			<version>1.5</version>
-  			<scope>compile</scope>
+			<groupId>me.mrCookieSlime</groupId>
+			<artifactId>Slimefun4</artifactId>
+			<version>4.1.17-tw</version>
+			<scope>system</scope>
+			<systemPath>D:/JAVA Projects/Slimefun4TW/Slimefun4/target/Slimefun v4.1.17-tw.jar</systemPath>
 		</dependency>
     </dependencies>
 </project>
