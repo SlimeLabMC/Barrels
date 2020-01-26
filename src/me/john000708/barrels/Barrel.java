@@ -4,7 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import me.mrCookieSlime.CSCoreLibPlugin.CSCoreLib;
-import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.handlers.BlockTicker;
+import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunBackpack;
+import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.items.StormStaff;
+import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
+import me.mrCookieSlime.Slimefun.Setup.SlimefunManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -43,10 +46,14 @@ public class Barrel extends SlimefunItem {
     private int capacity;
     private boolean allowDisplayItem;
 
-    protected Barrel(Category category, ItemStack item, String name, RecipeType recipeType, final ItemStack[] recipe, int capacity) {
+    private String title;
+
+    protected Barrel(Category category, ItemStack item, String name, String title, RecipeType recipeType, final ItemStack[] recipe, int capacity) {
         super(category, item, name, recipeType, recipe);
 
         this.capacity = capacity;
+        this.title = title;
+
 
         new BlockMenuPreset(name, getInventoryTitle()) {
 
@@ -81,17 +88,9 @@ public class Barrel extends SlimefunItem {
             }
 
             @Override
-            public int[] getSlotsAccessedByItemTransport(ItemTransportFlow itemTransportFlow) {
-                return new int[0];
-            }
-
-            @Override
-            public int[] getSlotsAccessedByItemTransport(BlockMenu menu, ItemTransportFlow flow, ItemStack item) {
-                if (flow == ItemTransportFlow.INSERT) {
-                    if (BlockStorage.getLocationInfo(menu.getLocation(), "storedItems") != null)
-                        return isSimilar(item, menu.getItemInSlot(22)) ? getInputSlots() : new int[0];
-                    else return getInputSlots();
-                } else return getOutputSlots();
+            public int[] getSlotsAccessedByItemTransport(ItemTransportFlow flow) {
+                if (flow == ItemTransportFlow.INSERT) return getInputSlots();
+                else return getOutputSlots();
             }
         };
 
@@ -104,11 +103,13 @@ public class Barrel extends SlimefunItem {
             @Override
             public boolean onBreak(Player player, Block b, SlimefunItem slimefunItem, UnregisterReason unregisterReason) {
 
-                if (!CSCoreLib.getLib().getProtectionManager().canBuild(player.getUniqueId(), b)) return false;
-
-                DisplayItem.removeDisplayItem(b);
-
                 BlockMenu inv = BlockStorage.getInventory(b);
+                if (!CSCoreLib.getLib().getProtectionManager().canBuild(player.getUniqueId(), b) ||  !inv.toInventory().getViewers().isEmpty()) return false;
+                if(BlockStorage.getLocationInfo(b.getLocation(), "storedItems") != null &&  Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"))>=1000){
+                    player.sendMessage(ChatColor.translateAlternateColorCodes('&',"&aSlimefun &7> &e單元內物品須低於1000個 才能破壞!"));
+                    return false;
+                }
+                DisplayItem.removeDisplayItem(b);
 
                 if (inv.getItemInSlot(getInputSlots()[0]) != null)
                     b.getWorld().dropItem(b.getLocation(), inv.getItemInSlot(getInputSlots()[0]));
@@ -180,7 +181,7 @@ public class Barrel extends SlimefunItem {
     }
 
     public String getInventoryTitle() {
-        return "&6儲存單元";
+        return title;
     }
 
     public int getCapacity(Block b) {
@@ -240,8 +241,6 @@ public class Barrel extends SlimefunItem {
     private void updateBarrel(Block b) {
         BlockMenu inventory = BlockStorage.getInventory(b);
 
-        if (inventory == null) return;
-
         for (int slot : getInputSlots()) {
             if (inventory.getItemInSlot(slot) != null) {
                 ItemStack input = inventory.getItemInSlot(slot);
@@ -250,6 +249,13 @@ public class Barrel extends SlimefunItem {
                     if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) {
                         BlockStorage.addBlockInfo(b, "storedItems", "1");
                     }
+                    ItemStack stack = input.clone();
+                    List<String> lore = (stack.hasItemMeta() && stack.getItemMeta().hasLore()) ? stack.getItemMeta().getLore() : new ArrayList<String>();
+                    lore.add(LORE_DATA);
+                    ItemMeta meta = stack.getItemMeta();
+                    meta.setLore(lore);
+                    stack.setItemMeta(meta);
+                    inventory.replaceExistingItem(22, new CustomItem(stack, 1), false);
                     //There's no need to box the integer.
                     int storedAmount = Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
 
@@ -355,28 +361,44 @@ public class Barrel extends SlimefunItem {
         if (i1 == null) return false;
         if (i2 == null) return false;
 
-        ItemStack itemStack1 = i1.clone();
-        itemStack1.setAmount(1);
-        ItemStack itemStack2 = i2.clone();
-        itemStack2.setAmount(1);
+        if(i1.getType() != i2.getType()) return false;
 
-        if (!itemStack2.hasItemMeta()) return false;
+        SlimefunItem item = SlimefunItem.getByItem(i1);
 
-        if (!itemStack2.getItemMeta().hasLore()) return false;
-
-        ItemMeta meta = itemStack2.getItemMeta();
-
-        List<String> lore = meta.getLore();
-        for (int i = 0; i <= lore.size() - 1; i++) {
-            if (lore.get(i).equals(LORE_DATA)) {
-                lore.remove(i);
-                meta.setLore(lore);
-                itemStack2.setItemMeta(meta);
-                break;
-            }
+        if(item instanceof SlimefunBackpack){
+            return false;
+        }
+        if(item instanceof StormStaff){
+            return SlimefunManager.isItemSimilar(i1, item.getItem(), true);
         }
 
-        return itemStack1.isSimilar(itemStack2);
+        if(i1.hasItemMeta() && i2.hasItemMeta()){
+            ItemMeta m1, m2;
+            m1 = i1.getItemMeta();
+            m2 = i2.getItemMeta();
+            if(m1.hasDisplayName() && m2.hasDisplayName()){
+                if(m1.getDisplayName().equals(m2.getDisplayName())){
+                    if(m1.hasEnchants() && m2.hasEnchants()){
+                        return m1.getEnchants().equals(m2.getEnchants());
+                    } else {
+                        return  !m1.hasEnchants() && !m2.hasEnchants();
+                    }
+                }
+            }
+        }else if(!i1.hasItemMeta()){
+            ItemStack clone = i2.clone();
+            ItemMeta meta = clone.getItemMeta();
+            List<String> lore = meta.getLore();
+
+            for (int i = 0; i <= lore.size() - 1; i++) {
+                if (lore.get(i).equals(LORE_DATA)) {
+                    lore.remove(i);
+                    break;
+                }
+            }
+            return lore.isEmpty() && !i2.getItemMeta().hasDisplayName();
+        }
+        return false;
     }
 
     private Inventory inject(Block b) {
