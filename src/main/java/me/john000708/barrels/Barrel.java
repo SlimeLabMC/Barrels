@@ -19,18 +19,20 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
-import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ClickAction;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.InvUtils;
-import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.Item.CustomItem;
 import me.mrCookieSlime.Slimefun.Lists.RecipeType;
 import me.mrCookieSlime.Slimefun.Objects.Category;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunBlockHandler;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.UnregisterReason;
+import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
+import me.mrCookieSlime.Slimefun.api.SlimefunItemStack;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenuPreset;
+import me.mrCookieSlime.Slimefun.api.inventory.DirtyChestMenu;
 import me.mrCookieSlime.Slimefun.api.item_transport.ItemTransportFlow;
+import me.mrCookieSlime.Slimefun.cscorelib2.item.CustomItem;
 
 /**
  * Created by John on 06.05.2016.
@@ -48,14 +50,14 @@ public class Barrel extends SlimefunItem {
 
     private String title;
 
-    protected Barrel(Category category, ItemStack item, String name, String title, RecipeType recipeType, final ItemStack[] recipe, int capacity) {
-        super(category, item, name, recipeType, recipe);
+    protected Barrel(Category category, SlimefunItemStack item, RecipeType recipeType, final ItemStack[] recipe, int capacity) {
+        super(category, item,  recipeType, recipe);
 
         this.capacity = capacity;
-        this.title = title;
+        this.title = item.getItemMeta().getDisplayName();
 
 
-        new BlockMenuPreset(name, getInventoryTitle()) {
+        new BlockMenuPreset(getID(), getInventoryTitle()) {
 
             @Override
             public void init() {
@@ -63,7 +65,7 @@ public class Barrel extends SlimefunItem {
             }
 
             @Override
-            public void newInstance(final BlockMenu menu, final Block b) {
+            public void newInstance(BlockMenu menu, Block b) {
 
                 registerEvent((slot, prev, next) -> {
                     updateBarrel(b);
@@ -71,8 +73,8 @@ public class Barrel extends SlimefunItem {
                 });
 
                 if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) {
-                    menu.replaceExistingItem(4, new CustomItem(new ItemStack(Material.BARRIER), "&7空"), false);
-                    menu.replaceExistingItem(22, new CustomItem(new ItemStack(Material.BARRIER), "&7空"), false);
+                    menu.replaceExistingItem(4, new CustomItem(Material.BARRIER, "&7空"), false);
+                    menu.replaceExistingItem(22, new CustomItem(Material.BARRIER, "&7空"), false);
                 }
 
                 if (Barrels.displayItem) {
@@ -86,6 +88,10 @@ public class Barrel extends SlimefunItem {
             public boolean canOpen(Block b, Player p) {
                 return CSCoreLib.getLib().getProtectionManager().canAccessChest(p.getUniqueId(), b);
             }
+            
+            public int[] getSlotsAccessedByItemTransport(DirtyChestMenu menu, ItemTransportFlow flow, ItemStack item) {
+            	return getSlotsAccessedByItemTransport((BlockMenu) menu, flow, item);
+            }
 
             @Override
             public int[] getSlotsAccessedByItemTransport(ItemTransportFlow flow) {
@@ -94,7 +100,7 @@ public class Barrel extends SlimefunItem {
             }
         };
 
-        registerBlockHandler(name, new SlimefunBlockHandler() {
+        registerBlockHandler(getID(), new SlimefunBlockHandler() {
 
             @Override
             public void onPlace(Player player, Block block, SlimefunItem slimefunItem) {
@@ -102,6 +108,11 @@ public class Barrel extends SlimefunItem {
 
             @Override
             public boolean onBreak(Player player, Block b, SlimefunItem slimefunItem, UnregisterReason unregisterReason) {
+
+                if (unregisterReason.equals(UnregisterReason.EXPLODE)) {
+                    if (BlockStorage.getLocationInfo(b.getLocation(), "explosion") != null) 
+                    	return false;
+                }
 
                 BlockMenu inv = BlockStorage.getInventory(b);
                 if (!CSCoreLib.getLib().getProtectionManager().canBuild(player.getUniqueId(), b) ||  !inv.toInventory().getViewers().isEmpty()) return false;
@@ -171,10 +182,6 @@ public class Barrel extends SlimefunItem {
                     DisplayItem.updateDisplayItem(block, getCapacity(block), allowDisplayItem);
                 }
             }
-
-            @Override
-            public void uniqueTick() {
-            }
         });
 
         super.register(false);
@@ -192,13 +199,13 @@ public class Barrel extends SlimefunItem {
         //There's no need to box the integer.
         return Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "capacity"));
     }
-
+    
     public int[] getInputSlots() {
-        return new int[]{10};
+        return new int[] {10};
     }
-
+    
     public int[] getOutputSlots() {
-        return new int[]{16};
+        return new int[] {16};
     }
 
     private ItemStack getCapacityItem(Block b) {
@@ -264,7 +271,8 @@ public class Barrel extends SlimefunItem {
                             BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(getCapacity(b)));
                             inventory.replaceExistingItem(slot, InvUtils.decreaseItem(inventory.getItemInSlot(slot), getCapacity(b) - storedAmount), false);
                             inventory.replaceExistingItem(4, getCapacityItem(b), false);
-                        } else {
+                        } 
+                        else {
                             BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(storedAmount + input.getAmount()));
                             inventory.replaceExistingItem(slot, new ItemStack(Material.AIR), false);
                             inventory.replaceExistingItem(4, getCapacityItem(b), false);
@@ -341,20 +349,20 @@ public class Barrel extends SlimefunItem {
 
     private void constructMenu(final BlockMenuPreset preset) {
         for (int i : border1) {
-            preset.addItem(i, new CustomItem(Material.CYAN_STAINED_GLASS_PANE, " "), (Player player, int j, ItemStack itemStack, ClickAction clickAction) -> false);
+            preset.addItem(i, new CustomItem(Material.CYAN_STAINED_GLASS_PANE, " "), (p, j, stack, action) -> false);
         }
 
         for (int i : border2) {
-            preset.addItem(i, new CustomItem(Material.BLACK_STAINED_GLASS_PANE, " "), (Player player, int j, ItemStack itemStack, ClickAction clickAction) -> false);
+            preset.addItem(i, new CustomItem(Material.BLACK_STAINED_GLASS_PANE, " "), (p, j, stack, action) -> false);
         }
 
         for (int i : border3) {
-            preset.addItem(i, new CustomItem(Material.ORANGE_STAINED_GLASS_PANE, " "), (Player player, int j, ItemStack itemStack, ClickAction clickAction) -> false);
+            preset.addItem(i, new CustomItem(Material.ORANGE_STAINED_GLASS_PANE, " "), (p, j, stack, action) -> false);
         }
 
-        preset.addMenuClickHandler(4, (Player player, int i, ItemStack itemStack, ClickAction clickAction) -> false);
+        preset.addMenuClickHandler(4, (p, i, stack, action) -> false);
 
-        preset.addMenuClickHandler(22, (Player player, int i, ItemStack itemStack, ClickAction clickAction) -> false);
+        preset.addMenuClickHandler(22, (p, i, stack, action) -> false);
     }
 
     private boolean isSimilar(ItemStack i1, ItemStack i2) {
@@ -404,9 +412,11 @@ public class Barrel extends SlimefunItem {
     private Inventory inject(Block b) {
         int size = BlockStorage.getInventory(b).toInventory().getSize();
         Inventory inv = Bukkit.createInventory(null, size);
+        
         for (int i = 0; i < size; i++) {
             inv.setItem(i, new CustomItem(Material.COMMAND_BLOCK, "&4ALL YOUR PLACEHOLDERS ARE BELONG TO US"));
         }
+        
         for (int slot : getOutputSlots()) {
             inv.setItem(slot, BlockStorage.getInventory(b).getItemInSlot(slot));
         }

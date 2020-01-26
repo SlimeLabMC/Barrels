@@ -13,11 +13,11 @@ import me.john000708.barrels.Barrels;
  * Created by John on 10.05.2016.
  */
 public class DisplayListener implements Listener {
-
-    private final String lore = ChatColor.translateAlternateColorCodes('&', "&6&lB4R3L - &eITEM");
-
-    public DisplayListener() {
-        Bukkit.getPluginManager().registerEvents(this, Barrels.plugin);
+	
+	private final String lore = ChatColor.translateAlternateColorCodes('&', "&6&lB4R3L - &eITEM");
+	
+    public DisplayListener(Barrels plugin) {
+        Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
     @EventHandler
