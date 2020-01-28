@@ -8,6 +8,8 @@ import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunBackpack;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.items.StormStaff;
 import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
 import me.mrCookieSlime.Slimefun.Setup.SlimefunManager;
+import me.mrCookieSlime.Slimefun.SlimefunPlugin;
+import me.mrCookieSlime.Slimefun.cscorelib2.protection.ProtectableAction;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -86,16 +88,25 @@ public class Barrel extends SlimefunItem {
 
             @Override
             public boolean canOpen(Block b, Player p) {
-                return CSCoreLib.getLib().getProtectionManager().canAccessChest(p.getUniqueId(), b);
-            }
-            
-            public int[] getSlotsAccessedByItemTransport(DirtyChestMenu menu, ItemTransportFlow flow, ItemStack item) {
-            	return getSlotsAccessedByItemTransport((BlockMenu) menu, flow, item);
+                return SlimefunPlugin.getProtectionManager().hasPermission(p, b, ProtectableAction.ACCESS_INVENTORIES);
             }
 
             @Override
-            public int[] getSlotsAccessedByItemTransport(ItemTransportFlow flow) {
-                if (flow == ItemTransportFlow.INSERT) return getInputSlots();
+            public int[] getSlotsAccessedByItemTransport(ItemTransportFlow itemTransportFlow) {
+                return new int[0];
+            }
+
+            public int[] getSlotsAccessedByItemTransport(DirtyChestMenu menu, ItemTransportFlow flow, ItemStack item) {
+                return getSlotsAccessedByItemTransport((BlockMenu) menu, flow, item);
+            }
+
+            @Override
+            public int[] getSlotsAccessedByItemTransport(BlockMenu menu, ItemTransportFlow flow, ItemStack item) {
+                if (flow == ItemTransportFlow.INSERT) {
+                    if (BlockStorage.getLocationInfo(menu.getLocation(), "storedItems") != null)
+                        return isSimilar(item, menu.getItemInSlot(22)) ? getInputSlots() : new int[0];
+                    else return getInputSlots();
+                }
                 else return getOutputSlots();
             }
         };
@@ -115,7 +126,7 @@ public class Barrel extends SlimefunItem {
                 }
 
                 BlockMenu inv = BlockStorage.getInventory(b);
-                if (!CSCoreLib.getLib().getProtectionManager().canBuild(player.getUniqueId(), b) ||  !inv.toInventory().getViewers().isEmpty()) return false;
+                if (!SlimefunPlugin.getProtectionManager().hasPermission(player, b, ProtectableAction.BREAK_BLOCK)||  !inv.toInventory().getViewers().isEmpty()) return false;
                 if(BlockStorage.getLocationInfo(b.getLocation(), "storedItems") != null &&  Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"))>=1000){
                     player.sendMessage(ChatColor.translateAlternateColorCodes('&',"&aSlimefun &7> &e單元內物品須低於1000個 才能破壞!"));
                     return false;
