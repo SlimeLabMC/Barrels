@@ -3,7 +3,6 @@ package me.john000708.barrels;
 import java.util.ArrayList;
 import java.util.List;
 
-import me.mrCookieSlime.CSCoreLibPlugin.CSCoreLib;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunBackpack;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.items.StormStaff;
 import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
@@ -27,7 +26,6 @@ import me.mrCookieSlime.Slimefun.Objects.Category;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunBlockHandler;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.UnregisterReason;
-import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
 import me.mrCookieSlime.Slimefun.api.SlimefunItemStack;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
@@ -100,7 +98,6 @@ public class Barrel extends SlimefunItem {
                 return getSlotsAccessedByItemTransport((BlockMenu) menu, flow, item);
             }
 
-            @Override
             public int[] getSlotsAccessedByItemTransport(BlockMenu menu, ItemTransportFlow flow, ItemStack item) {
                 if (flow == ItemTransportFlow.INSERT) {
                     if (BlockStorage.getLocationInfo(menu.getLocation(), "storedItems") != null)
@@ -127,8 +124,8 @@ public class Barrel extends SlimefunItem {
 
                 BlockMenu inv = BlockStorage.getInventory(b);
                 if (!SlimefunPlugin.getProtectionManager().hasPermission(player, b, ProtectableAction.BREAK_BLOCK)||  !inv.toInventory().getViewers().isEmpty()) return false;
-                if(BlockStorage.getLocationInfo(b.getLocation(), "storedItems") != null &&  Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"))>=1000){
-                    player.sendMessage(ChatColor.translateAlternateColorCodes('&',"&aSlimefun &7> &e單元內物品須低於1000個 才能破壞!"));
+                if(BlockStorage.getLocationInfo(b.getLocation(), "storedItems") != null &&  Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems")) > 1024){
+                    player.sendMessage(ChatColor.translateAlternateColorCodes('&',"&aSlimefun &7> &e單元內物品須低於1024個 才能破壞!"));
                     return false;
                 }
                 DisplayItem.removeDisplayItem(b);
@@ -147,12 +144,15 @@ public class Barrel extends SlimefunItem {
                 ItemMeta meta = item.getItemMeta();
 
                 List<String> lore = meta.getLore();
-                for (int i = 0; i <= lore.size() - 1; i++) {
-                    if (lore.get(i).equals(LORE_DATA)) {
-                        lore.remove(i);
-                        meta.setLore(lore);
-                        item.setItemMeta(meta);
-                        break;
+
+                if(lore != null) {
+                    for (int i = 0; i <= lore.size() - 1; i++) {
+                        if (lore.get(i).equals(LORE_DATA)) {
+                            lore.remove(i);
+                            meta.setLore(lore);
+                            item.setItemMeta(meta);
+                            break;
+                        }
                     }
                 }
 
@@ -328,10 +328,12 @@ public class Barrel extends SlimefunItem {
 
         List<String> lore = meta.getLore();
 
-        for (int i = 0; i <= lore.size() - 1; i++) {
-            if (lore.get(i).equals(LORE_DATA)) {
-                lore.remove(i);
-                break;
+        if (lore != null) {
+            for (int i = 0; i <= lore.size() - 1; i++) {
+                if (lore.get(i).equals(LORE_DATA)) {
+                    lore.remove(i);
+                    break;
+                }
             }
         }
 
@@ -409,13 +411,15 @@ public class Barrel extends SlimefunItem {
             ItemMeta meta = clone.getItemMeta();
             List<String> lore = meta.getLore();
 
-            for (int i = 0; i <= lore.size() - 1; i++) {
-                if (lore.get(i).equals(LORE_DATA)) {
-                    lore.remove(i);
-                    break;
+            if(lore != null) {
+                for (int i = 0; i <= lore.size() - 1; i++) {
+                    if (lore.get(i).equals(LORE_DATA)) {
+                        lore.remove(i);
+                        break;
+                    }
                 }
             }
-            return lore.isEmpty() && !i2.getItemMeta().hasDisplayName();
+            return lore != null && lore.isEmpty() && !i2.getItemMeta().hasDisplayName();
         }
         return false;
     }
