@@ -2,6 +2,7 @@ package me.john000708.barrels;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunBackpack;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.items.StormStaff;
@@ -17,6 +18,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
@@ -46,9 +48,55 @@ public class Barrel extends SlimefunItem {
     private static final int[] border3 = {6, 7, 8, 15, 17, 24, 25, 26};
 
     private int capacity;
-    private boolean allowDisplayItem;
+    private boolean allowDisplayItem = false;
 
     private String title;
+
+    /*
+    * new BlockMenuPreset(getID(), getInventoryTitle()) {
+
+			@Override
+			public void init() {
+				constructMenu(this);
+			}
+
+			@Override
+			public boolean canOpen(Block b, Player p) {
+				return p.hasPermission("slimefun.inventory.bypass") || SlimefunPlugin.getProtectionManager().hasPermission(p, b.getLocation(), ProtectableAction.ACCESS_INVENTORIES);
+			}
+
+			@Override
+			public int[] getSlotsAccessedByItemTransport(ItemTransportFlow flow) {
+				return new int[0];
+			}
+
+			@Override
+			public int[] getSlotsAccessedByItemTransport(DirtyChestMenu menu, ItemTransportFlow flow, ItemStack item) {
+				if (flow == ItemTransportFlow.WITHDRAW) return getOutputSlots();
+
+				List<Integer> slots = new ArrayList<>();
+
+				for (int slot : getInputSlots()) {
+					if (SlimefunManager.isItemSimilar(menu.getItemInSlot(slot), item, false)) {
+						slots.add(slot);
+					}
+				}
+
+				if (slots.isEmpty()) {
+					return getInputSlots();
+				}
+				else {
+					Collections.sort(slots, compareSlots(menu));
+					int[] array = new int[slots.size()];
+
+					for (int i = 0; i < slots.size(); i++) {
+						array[i] = slots.get(i);
+					}
+
+					return array;
+				}
+			}
+		};*/
 
     protected Barrel(Category category, SlimefunItemStack item, RecipeType recipeType, final ItemStack[] recipe, int capacity) {
         super(category, item,  recipeType, recipe);
@@ -78,7 +126,7 @@ public class Barrel extends SlimefunItem {
                 }
 
                 if (Barrels.displayItem) {
-                    allowDisplayItem = b.getRelative(BlockFace.UP).getType() == Material.AIR;
+                    //allowDisplayItem = b.getRelative(BlockFace.UP).getType() == Material.AIR;
 
                     DisplayItem.updateDisplayItem(b, getCapacity(b), allowDisplayItem);
                 }
@@ -99,6 +147,7 @@ public class Barrel extends SlimefunItem {
             }
 
             public int[] getSlotsAccessedByItemTransport(BlockMenu menu, ItemTransportFlow flow, ItemStack item) {
+
                 if (flow == ItemTransportFlow.INSERT) {
                     if (BlockStorage.getLocationInfo(menu.getLocation(), "storedItems") != null)
                         return isSimilar(item, menu.getItemInSlot(22)) ? getInputSlots() : new int[0];
@@ -106,6 +155,31 @@ public class Barrel extends SlimefunItem {
                 }
                 else return getOutputSlots();
             }
+            /*
+            for (int slot : menu.getPreset().getSlotsAccessedByItemTransport(menu, ItemTransportFlow.INSERT, stack)) {
+				ItemStack is = menu.getItemInSlot(slot) == null ? null: menu.getItemInSlot(slot).clone();
+
+				if (is == null) {
+					menu.replaceExistingItem(slot, stack.clone());
+					return null;
+				}
+				else if (SlimefunManager.isItemSimilar(new CustomItem(is, 1), new CustomItem(stack, 1), true) && is.getAmount() < is.getType().getMaxStackSize()) {
+					int amount = is.getAmount() + stack.getAmount();
+
+					if (amount > is.getType().getMaxStackSize()) {
+						is.setAmount(is.getType().getMaxStackSize());
+						stack.setAmount(amount - is.getType().getMaxStackSize());
+					}
+					else {
+						is.setAmount(amount);
+						stack = null;
+					}
+
+					menu.replaceExistingItem(slot, is);
+					return stack;
+				}
+			}
+             */
         };
 
         registerBlockHandler(getID(), new SlimefunBlockHandler() {
@@ -305,11 +379,26 @@ public class Barrel extends SlimefunItem {
             }
         }
 
+        for(int i : getOutputSlots()){
+            if(inventory.getItemInSlot(i) != null  && inventory.getItemInSlot(i).getType() == Material.BARRIER){
+                inventory.replaceExistingItem(i, new ItemStack(Material.AIR), false);
+                BlockStorage.addBlockInfo(b, "storedItems", null);
+                inventory.replaceExistingItem(4, new CustomItem(new ItemStack(Material.BARRIER), "&7空"), false);
+                inventory.replaceExistingItem(22, new CustomItem(new ItemStack(Material.BARRIER), "&7空"), false);
+                return;
+            }
+        }
         if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) return;
 
         //There's no need to box the integer.
         int stored = Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
-        ItemStack output = inventory.getItemInSlot(22).clone();
+        ItemStack output = null;
+        if(inventory.getItemInSlot(22) == null) {
+            Bukkit.getServer().getLogger().log(Level.WARNING, "Barrel Error: "+b.getLocation().toString());
+            return;
+        }
+
+        output = inventory.getItemInSlot(22).clone();
 
         if (inventory.getItemInSlot(getOutputSlots()[0]) != null) {
             if (!isSimilar(inventory.getItemInSlot(getOutputSlots()[0]), output)) {
@@ -393,10 +482,14 @@ public class Barrel extends SlimefunItem {
             return SlimefunManager.isItemSimilar(i1, item.getItem(), true);
         }
 
+
         if(i1.hasItemMeta() && i2.hasItemMeta()){
             ItemMeta m1, m2;
             m1 = i1.getItemMeta();
             m2 = i2.getItemMeta();
+            if((m1 instanceof Damageable && m2 instanceof Damageable) && (((Damageable) m1).getDamage() != ((Damageable) m2).getDamage())){
+                return false;
+            }
             if(m1.hasDisplayName() && m2.hasDisplayName()){
                 if(m1.getDisplayName().equals(m2.getDisplayName())){
                     if(m1.hasEnchants() && m2.hasEnchants()){
