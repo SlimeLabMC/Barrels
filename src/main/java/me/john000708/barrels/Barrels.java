@@ -9,7 +9,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import me.john000708.barrels.block.Barrel;
-import me.john000708.barrels.listeners.DisplayListener;
+
 import me.john000708.barrels.listeners.WorldListener;
 import me.mrCookieSlime.Slimefun.Lists.RecipeType;
 import me.mrCookieSlime.Slimefun.Objects.Category;
@@ -33,10 +33,8 @@ public class Barrels extends JavaPlugin implements SlimefunAddon {
         instance = this;
         Config config = new Config(this);
 
-        new DisplayListener(this);
         new WorldListener(this);
 
-        displayItem = config.getBoolean("options.displayItem");
         requirePlastic = config.getBoolean("options.plastic-recipe");
         itemFormat = config.getString("options.item-format");
 
