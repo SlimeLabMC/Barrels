@@ -1,11 +1,5 @@
 package me.john000708.barrels.block;
 
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.inventory.ItemStack;
-
 import io.github.thebusybiscuit.slimefun4.implementation.items.SimpleSlimefunItem;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 import me.john000708.barrels.Barrels;
@@ -19,7 +13,17 @@ import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
 import me.mrCookieSlime.Slimefun.api.SlimefunItemStack;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
+import me.mrCookieSlime.Slimefun.cscorelib2.chat.ChatColors;
 import me.mrCookieSlime.Slimefun.cscorelib2.item.CustomItem;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Created by John on 06.05.2016.
@@ -34,7 +38,7 @@ public abstract class Barrel extends SimpleSlimefunItem<BlockTicker> {
         this.capacity = capacity;
 
         new BarrelsMenuPreset(this);
-        registerBlockHandler(getID(), new BarrelsBlockHandler(this));
+        registerBlockHandler(getId(), new BarrelsBlockHandler(this));
     }
 
     public abstract String getInventoryTitle();
@@ -112,9 +116,9 @@ public abstract class Barrel extends SimpleSlimefunItem<BlockTicker> {
             bar.append(":");
         }
 
-        bar.append("&8] &7- " + percentage + "%");
+        bar.append("&8] &7- ").append(percentage).append("%");
 
-        return new CustomItem(Material.CAULDRON, "&7" + BlockStorage.getLocationInfo(b.getLocation(), "storedItems") + "/" + getCapacity(b), ChatColor.translateAlternateColorCodes('&', bar.toString()));
+        return new CustomItem(Material.CAULDRON, "&7" + BlockStorage.getLocationInfo(b.getLocation(), "storedItems") + "/" + getCapacity(b), ChatColors.color(bar.toString()));
     }
 
     void updateBarrel(Block b) {
@@ -124,32 +128,49 @@ public abstract class Barrel extends SimpleSlimefunItem<BlockTicker> {
             return;
         }
 
+        if(inventory.getItemInSlot(22) == null) {
+            Barrels.getInstance().getLogger().log(Level.WARNING, "22 Null "+ b.getLocation().toString());
+            BlockStorage.retrieve(b);
+            BlockStorage.clearBlockInfo(b);
+            return;
+        }
+
+        if(inventory.getItemInSlot(22).hasItemMeta() && inventory.getItemInSlot(22).getItemMeta().hasLore()){
+            ItemMeta meta = inventory.getItemInSlot(22).getItemMeta();
+            List<String> lore = meta.getLore();
+            if(ChatColor.stripColor(lore.get(lore.size() - 1)).equals("")){
+                lore.remove(lore.size() - 1);
+                meta.setLore(lore);
+                inventory.getItemInSlot(22).setItemMeta(meta);
+            }
+        }
+
         for (int slot : getInputSlots()) {
             if (inventory.getItemInSlot(slot) != null) {
                 ItemStack input = inventory.getItemInSlot(slot);
+                int amount = input.getAmount();
 
                 if (SlimefunUtils.isItemSimilar(input, inventory.getItemInSlot(22), true, false)) {
                     if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) {
-                        BlockStorage.addBlockInfo(b, "storedItems", "1");
+                        BlockStorage.addBlockInfo(b, "storedItems", "0");
                     }
 
                     int storedAmount = Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
 
                     if (storedAmount < getCapacity(b)) {
-                        if (storedAmount + input.getAmount() > getCapacity(b)) {
+                        if (storedAmount + amount > getCapacity(b)) {
                             BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(getCapacity(b)));
                             inventory.replaceExistingItem(slot, InvUtils.decreaseItem(inventory.getItemInSlot(slot), getCapacity(b) - storedAmount), false);
-                            inventory.replaceExistingItem(4, getCapacityItem(b), false);
                         }
                         else {
-                            BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(storedAmount + input.getAmount()));
+                            BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(storedAmount + amount));
                             inventory.replaceExistingItem(slot, new ItemStack(Material.AIR), false);
-                            inventory.replaceExistingItem(4, getCapacityItem(b), false);
                         }
+                        inventory.replaceExistingItem(4, getCapacityItem(b), false);
                     }
                 }
                 else if (inventory.getItemInSlot(22).getType() == Material.BARRIER) {
-                    BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(input.getAmount()));
+                    BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(amount));
 
                     input.setAmount(input.getMaxStackSize());
                     inventory.replaceExistingItem(22, input, false);
@@ -160,14 +181,21 @@ public abstract class Barrel extends SimpleSlimefunItem<BlockTicker> {
         }
 
         if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) {
+            //Barrels.getInstance().getLogger().log(Level.WARNING, "6");
             return;
         }
 
         int stored = Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
+        if(stored == 0) {
+            clear(b, inventory);
+            //Barrels.getInstance().getLogger().log(Level.WARNING, "5");
+            return;
+        }
         ItemStack output = inventory.getItemInSlot(22).clone();
 
         if (inventory.getItemInSlot(getOutputSlots()[0]) != null && inventory.getItemInSlot(getOutputSlots()[0]).getType() != Material.AIR) {
             if (!SlimefunUtils.isItemSimilar(inventory.getItemInSlot(getOutputSlots()[0]), output, true, false)) {
+                //Barrels.getInstance().getLogger().log(Level.WARNING, "4");
                 return;
             }
 
@@ -179,19 +207,26 @@ public abstract class Barrel extends SimpleSlimefunItem<BlockTicker> {
         }
 
         if (!inventory.fits(output, getOutputSlots())) {
+            //Barrels.getInstance().getLogger().log(Level.WARNING, "1");
             return;
         }
 
         BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(stored - output.getAmount()));
         inventory.pushItem(output, getOutputSlots());
 
-        if ((stored - output.getAmount()) <= 0) {
-            BlockStorage.addBlockInfo(b, "storedItems", null);
-            inventory.replaceExistingItem(4, new CustomItem(Material.BARRIER, "&7Empty"), false);
-            inventory.replaceExistingItem(22, new CustomItem(Material.BARRIER, "&7Empty"), false);
+        if (inventory.getItemInSlot(22).getType() == Material.AIR || (stored - output.getAmount()) <= 0) {
+            clear(b, inventory);
+            //Barrels.getInstance().getLogger().log(Level.WARNING, "2");
             return;
         }
 
         inventory.replaceExistingItem(4, getCapacityItem(b), false);
+        //Barrels.getInstance().getLogger().log(Level.WARNING, "3");
+    }
+
+    public void clear(Block b, BlockMenu inventory){
+        BlockStorage.addBlockInfo(b, "storedItems", null);
+        inventory.replaceExistingItem(4, new CustomItem(Material.BARRIER, "&7空"), false);
+        inventory.replaceExistingItem(22, new CustomItem(Material.BARRIER, "&7空"), false);
     }
 }

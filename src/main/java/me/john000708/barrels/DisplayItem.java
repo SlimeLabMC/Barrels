@@ -2,6 +2,7 @@ package me.john000708.barrels;
 
 import java.util.Optional;
 
+import me.mrCookieSlime.Slimefun.cscorelib2.chat.ChatColors;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -10,6 +11,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
 
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
@@ -27,20 +29,20 @@ public final class DisplayItem {
     private DisplayItem() {}
 
     public static void updateDisplayItem(Block b, int capacity, boolean allow) {
-        if (!allow) {
-            removeDisplayItem(b);
-            return;
-        }
+        removeDisplayItem(b);
 
-        ItemStack stack = new ItemStack(Material.BARRIER, 1);
-        String nametag = ChatColor.RED + "Empty";
+        /*ItemStack stack = new ItemStack(Material.BARRIER, 1);
+        String nametag = ChatColor.RED + "空";
         BlockMenu menu = BlockStorage.getInventory(b);
 
         if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") != null) {
             int storedItems = Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
             stack = menu.getItemInSlot(22).clone();
             stack.setAmount(1);
-            nametag = ChatColor.translateAlternateColorCodes('&', Barrels.getItemFormat());
+            ItemMeta meta = stack.getItemMeta();
+            meta.setDisplayName(b.getLocation().toString());
+            stack.setItemMeta(meta);
+            nametag = ChatColors.color(Barrels.getItemFormat());
             nametag = nametag.replace("<storedAmount>", String.valueOf(storedItems));
             nametag = nametag.replace("<storedPercentage>", String.valueOf(Math.round((float) storedItems / (float) capacity * 100.0F)));
             nametag = nametag.replace("<storedItem>", stack.getItemMeta().getDisplayName());
@@ -66,7 +68,7 @@ public final class DisplayItem {
 
         if (!SlimefunUtils.hasNoPickupFlag(item)) {
             SlimefunUtils.markAsNoPickup(item, "barrel");
-        }
+        }*/
     }
 
     public static void removeDisplayItem(Block b) {

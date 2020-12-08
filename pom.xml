@@ -46,9 +46,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.16.1-R0.1-SNAPSHOT</version>
+            <groupId>com.destroystokyo.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>1.16.2-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         
@@ -72,8 +72,9 @@
         <dependency>
             <groupId>com.github.TheBusyBiscuit</groupId>
             <artifactId>Slimefun4</artifactId>
-            <version>RC-14</version>
-            <scope>provided</scope>
+            <version>4.8</version>
+            <scope>system</scope>
+            <systemPath>C:/Users/Coco/Documents/JAVA Projects/Slimefun/target/Slimefun v4.8.jar</systemPath>
             <exclusions>
                 <exclusion>
                     <groupId>io.github.thebusybiscuit</groupId>

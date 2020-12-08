@@ -1,5 +1,7 @@
 package me.john000708.barrels.block;
 
+import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
+import me.mrCookieSlime.Slimefun.cscorelib2.protection.ProtectableAction;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -45,8 +47,8 @@ class BarrelsMenuPreset extends BlockMenuPreset {
         });
 
         if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) {
-            menu.replaceExistingItem(4, new CustomItem(Material.BARRIER, "&7Empty"), false);
-            menu.replaceExistingItem(22, new CustomItem(Material.BARRIER, "&7Empty"), false);
+            menu.replaceExistingItem(4, new CustomItem(Material.BARRIER, "&7空"), false);
+            menu.replaceExistingItem(22, new CustomItem(Material.BARRIER, "&7空"), false);
         }
 
         if (Barrels.displayItem()) {
@@ -74,9 +76,7 @@ class BarrelsMenuPreset extends BlockMenuPreset {
 
     @Override
     public boolean canOpen(Block b, Player p) {
-        boolean protect = BlockStorage.getLocationInfo(b.getLocation(), "protected") == null || BlockStorage.getLocationInfo(b.getLocation(), "owner").equals(p.getUniqueId().toString()) || (BlockStorage.getLocationInfo(b.getLocation(), "whitelist") != null && BlockStorage.getLocationInfo(b.getLocation(), "whitelist").contains(p.getUniqueId().toString()));
-
-        return p.hasPermission("slimefun.inventory.bypass") || protect;
+        return SlimefunPlugin.getProtectionManager().hasPermission(p, b, ProtectableAction.INTERACT_BLOCK);
     }
 
     @Override
