@@ -1,5 +1,6 @@
 package me.john000708.barrels;
 
+import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
 import me.mrCookieSlime.Slimefun.Objects.Research;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -17,7 +18,7 @@ import me.mrCookieSlime.Slimefun.cscorelib2.item.CustomItem;
 /**
  * Created by John on 06.05.2016.
  */
-public class Barrels extends JavaPlugin {
+public class Barrels extends JavaPlugin implements SlimefunAddon {
 	
 	public static Barrels instance;
     public static boolean displayItem;

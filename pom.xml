@@ -68,9 +68,9 @@
 		<dependency>
 			<groupId>me.mrCookieSlime</groupId>
 			<artifactId>Slimefun4</artifactId>
-			<version>4.1.18-tw</version>
+			<version>4.3</version>
 			<scope>system</scope>
-			<systemPath>C:/Users/Coco/Documents/JAVA Projects/Slimefun4/target/Slimefun v4.1.18-tw.jar</systemPath>
+			<systemPath>C:/Users/Coco/Documents/JAVA Projects/Slimefun/target/Slimefun v4.3.jar</systemPath>
 		</dependency>
     </dependencies>
 </project>

@@ -4,10 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
-import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunBackpack;
-import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.items.StormStaff;
 import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
-import me.mrCookieSlime.Slimefun.Setup.SlimefunManager;
 import me.mrCookieSlime.Slimefun.SlimefunPlugin;
 import me.mrCookieSlime.Slimefun.cscorelib2.protection.ProtectableAction;
 import org.bukkit.Bukkit;
@@ -269,7 +266,7 @@ public class Barrel extends SlimefunItem {
             }
         });
 
-        super.register(false);
+        super.register(Barrels.instance);
     }
 
     public String getInventoryTitle() {
