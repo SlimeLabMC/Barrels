@@ -5,7 +5,6 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import me.john000708.barrels.DisplayItem;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunBlockHandler;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.UnregisterReason;
@@ -28,8 +27,6 @@ class BarrelsBlockHandler implements SlimefunBlockHandler {
             player.sendMessage(ChatColors.color("&aSlimefun 4 &7> &e單元內物品須低於1024個 才能破壞!"));
             return false;
         }
-
-        DisplayItem.removeDisplayItem(b);
 
         BlockMenu inv = BlockStorage.getInventory(b);
 

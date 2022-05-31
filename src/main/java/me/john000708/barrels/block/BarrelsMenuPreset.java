@@ -4,20 +4,19 @@ import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
 import me.mrCookieSlime.Slimefun.cscorelib2.protection.ProtectableAction;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
-import me.john000708.barrels.Barrels;
-import me.john000708.barrels.DisplayItem;
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenuPreset;
 import me.mrCookieSlime.Slimefun.api.inventory.DirtyChestMenu;
 import me.mrCookieSlime.Slimefun.api.item_transport.ItemTransportFlow;
 import me.mrCookieSlime.Slimefun.cscorelib2.item.CustomItem;
+
+import javax.annotation.Nonnull;
 
 class BarrelsMenuPreset extends BlockMenuPreset {
 
@@ -28,7 +27,7 @@ class BarrelsMenuPreset extends BlockMenuPreset {
     private final Barrel barrel;
 
     public BarrelsMenuPreset(Barrel barrel) {
-        super(barrel.getID(), barrel.getInventoryTitle());
+        super(barrel.getId(), barrel.getInventoryTitle());
 
         this.barrel = barrel;
     }
@@ -39,7 +38,7 @@ class BarrelsMenuPreset extends BlockMenuPreset {
     }
 
     @Override
-    public void newInstance(BlockMenu menu, Block b) {
+    public void newInstance(@Nonnull BlockMenu menu, Block b) {
 
         registerEvent((slot, prev, next) -> {
             barrel.updateBarrel(b);
@@ -49,11 +48,6 @@ class BarrelsMenuPreset extends BlockMenuPreset {
         if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) {
             menu.replaceExistingItem(4, new CustomItem(Material.BARRIER, "&7空"), false);
             menu.replaceExistingItem(22, new CustomItem(Material.BARRIER, "&7空"), false);
-        }
-
-        if (Barrels.displayItem()) {
-            boolean hasRoom = b.getRelative(BlockFace.UP).getType() == Material.AIR;
-            DisplayItem.updateDisplayItem(b, barrel.getCapacity(b), hasRoom);
         }
     }
 
@@ -75,7 +69,7 @@ class BarrelsMenuPreset extends BlockMenuPreset {
     }
 
     @Override
-    public boolean canOpen(Block b, Player p) {
+    public boolean canOpen(@Nonnull Block b, @Nonnull Player p) {
         return SlimefunPlugin.getProtectionManager().hasPermission(p, b, ProtectableAction.INTERACT_BLOCK);
     }
 
@@ -89,14 +83,14 @@ class BarrelsMenuPreset extends BlockMenuPreset {
         if (flow == ItemTransportFlow.INSERT) {
             if (BlockStorage.getLocationInfo(((BlockMenu) menu).getLocation(), "storedItems") != null) {
                 if (SlimefunUtils.isItemSimilar(item, menu.getItemInSlot(22), true, false)) {
-                    return barrel.getInputSlots();
+                    return barrel.getInputSlots(); // != null is
                 }
                 else {
-                    return new int[0];
+                    return new int[0]; // != null isnt
                 }
             }
             else {
-                return barrel.getInputSlots();
+                return barrel.getInputSlots(); // == null
             }
         }
         else {

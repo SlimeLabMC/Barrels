@@ -1,21 +1,21 @@
 package me.john000708.barrels;
 
-import io.github.thebusybiscuit.slimefun4.core.researching.Research;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
-
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
+import io.github.thebusybiscuit.slimefun4.core.researching.Research;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import me.john000708.barrels.block.Barrel;
-
 import me.john000708.barrels.listeners.WorldListener;
 import me.mrCookieSlime.Slimefun.Lists.RecipeType;
 import me.mrCookieSlime.Slimefun.Objects.Category;
 import me.mrCookieSlime.Slimefun.api.SlimefunItemStack;
 import me.mrCookieSlime.Slimefun.cscorelib2.config.Config;
 import me.mrCookieSlime.Slimefun.cscorelib2.item.CustomItem;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import javax.annotation.Nonnull;
 
 /**
  * Created by John on 06.05.2016.
@@ -25,7 +25,6 @@ public class Barrels extends JavaPlugin implements SlimefunAddon {
     private static Barrels instance;
 
     private boolean requirePlastic;
-    private boolean displayItem;
     private String itemFormat;
 
     @Override
@@ -114,6 +113,7 @@ public class Barrels extends JavaPlugin implements SlimefunAddon {
         dsu.register();
     }
 
+    @Nonnull
     @Override
     public JavaPlugin getJavaPlugin() {
         return this;
@@ -132,7 +132,4 @@ public class Barrels extends JavaPlugin implements SlimefunAddon {
         return instance.itemFormat;
     }
 
-    public static boolean displayItem() {
-        return instance.displayItem;
-    }
 }
