@@ -3,19 +3,17 @@ package me.john000708.barrels;
 import io.github.thebusybiscuit.slimefun4.api.SlimefunAddon;
 import io.github.thebusybiscuit.slimefun4.core.researching.Research;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
+import io.github.thebusybiscuit.slimefun4.libraries.dough.config.Config;
+import io.github.thebusybiscuit.slimefun4.libraries.dough.items.CustomItemStack;
 import me.john000708.barrels.block.Barrel;
 import me.john000708.barrels.listeners.WorldListener;
 import me.mrCookieSlime.Slimefun.Lists.RecipeType;
 import me.mrCookieSlime.Slimefun.Objects.Category;
 import me.mrCookieSlime.Slimefun.api.SlimefunItemStack;
-import me.mrCookieSlime.Slimefun.cscorelib2.config.Config;
-import me.mrCookieSlime.Slimefun.cscorelib2.item.CustomItem;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import javax.annotation.Nonnull;
 
 /**
  * Created by John on 06.05.2016.
@@ -47,7 +45,7 @@ public class Barrels extends JavaPlugin implements SlimefunAddon {
     }
 
     private void setup() {
-        Category barrelCat = new Category(new NamespacedKey(this, "barrels"), new CustomItem(Material.OAK_LOG, "&3儲存單元", "", "&a> 點擊開啟"), 2);
+        Category barrelCat = new Category(new NamespacedKey(this, "barrels"), new CustomItemStack(Material.OAK_LOG, "&3儲存單元", "", "&a> 點擊開啟"), 2);
 
         SlimefunItemStack smallBarrel = new SlimefunItemStack("BARREL_SMALL", Material.OAK_LOG, "&6小型&9儲存單元", "", "&8\u21E8 &7容量: 64 組物品");
         SlimefunItemStack mediumBarrel = new SlimefunItemStack("BARREL_MEDIUM", Material.SPRUCE_LOG, "&7中型&9儲存單元", "", "&8\u21E8 &7容量: 128 組物品");
@@ -113,7 +111,6 @@ public class Barrels extends JavaPlugin implements SlimefunAddon {
         dsu.register();
     }
 
-    @Nonnull
     @Override
     public JavaPlugin getJavaPlugin() {
         return this;

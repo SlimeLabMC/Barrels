@@ -1,7 +1,8 @@
 package me.john000708.barrels.block;
 
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunPlugin;
-import me.mrCookieSlime.Slimefun.cscorelib2.protection.ProtectableAction;
+import io.github.thebusybiscuit.slimefun4.libraries.dough.items.CustomItemStack;
+import io.github.thebusybiscuit.slimefun4.libraries.dough.protection.Interaction;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -14,9 +15,6 @@ import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenuPreset;
 import me.mrCookieSlime.Slimefun.api.inventory.DirtyChestMenu;
 import me.mrCookieSlime.Slimefun.api.item_transport.ItemTransportFlow;
-import me.mrCookieSlime.Slimefun.cscorelib2.item.CustomItem;
-
-import javax.annotation.Nonnull;
 
 class BarrelsMenuPreset extends BlockMenuPreset {
 
@@ -38,30 +36,24 @@ class BarrelsMenuPreset extends BlockMenuPreset {
     }
 
     @Override
-    public void newInstance(@Nonnull BlockMenu menu, Block b) {
-
-        registerEvent((slot, prev, next) -> {
-            barrel.updateBarrel(b);
-            return next;
-        });
-
+    public void newInstance(BlockMenu menu, Block b) {
+        barrel.updateCapacityItem(menu, barrel.getCapacity(b), 0);
         if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) {
-            menu.replaceExistingItem(4, new CustomItem(Material.BARRIER, "&7空"), false);
-            menu.replaceExistingItem(22, new CustomItem(Material.BARRIER, "&7空"), false);
+            menu.replaceExistingItem(22, new CustomItemStack(Material.BARRIER, "&7空"), false);
         }
     }
 
     private void constructMenu(BlockMenuPreset preset) {
         for (int i : border1) {
-            preset.addItem(i, new CustomItem(Material.CYAN_STAINED_GLASS_PANE, " "), (p, j, stack, action) -> false);
+            preset.addItem(i, new CustomItemStack(Material.CYAN_STAINED_GLASS_PANE, " "), (p, j, stack, action) -> false);
         }
 
         for (int i : border2) {
-            preset.addItem(i, new CustomItem(Material.BLACK_STAINED_GLASS_PANE, " "), (p, j, stack, action) -> false);
+            preset.addItem(i, new CustomItemStack(Material.BLACK_STAINED_GLASS_PANE, " "), (p, j, stack, action) -> false);
         }
 
         for (int i : border3) {
-            preset.addItem(i, new CustomItem(Material.ORANGE_STAINED_GLASS_PANE, " "), (p, j, stack, action) -> false);
+            preset.addItem(i, new CustomItemStack(Material.ORANGE_STAINED_GLASS_PANE, " "), (p, j, stack, action) -> false);
         }
 
         preset.addMenuClickHandler(4, ChestMenuUtils.getEmptyClickHandler());
@@ -69,8 +61,8 @@ class BarrelsMenuPreset extends BlockMenuPreset {
     }
 
     @Override
-    public boolean canOpen(@Nonnull Block b, @Nonnull Player p) {
-        return SlimefunPlugin.getProtectionManager().hasPermission(p, b, ProtectableAction.INTERACT_BLOCK);
+    public boolean canOpen(Block b,  Player p) {
+        return SlimefunPlugin.getProtectionManager().hasPermission(p, b, Interaction.INTERACT_BLOCK);
     }
 
     @Override
@@ -81,16 +73,13 @@ class BarrelsMenuPreset extends BlockMenuPreset {
     @Override
     public int[] getSlotsAccessedByItemTransport(DirtyChestMenu menu, ItemTransportFlow flow, ItemStack item) {
         if (flow == ItemTransportFlow.INSERT) {
-            if (BlockStorage.getLocationInfo(((BlockMenu) menu).getLocation(), "storedItems") != null) {
-                if (SlimefunUtils.isItemSimilar(item, menu.getItemInSlot(22), true, false)) {
-                    return barrel.getInputSlots(); // != null is
-                }
-                else {
-                    return new int[0]; // != null isnt
-                }
+            if (BlockStorage.getLocationInfo(((BlockMenu)menu).getLocation(), "storedItems") == null ||
+                    barrel.getStoredItem(menu) == null ||
+                    SlimefunUtils.isItemSimilar(item, barrel.getStoredItem(menu), true, false)) {
+                return barrel.getInputSlots();
             }
             else {
-                return barrel.getInputSlots(); // == null
+                return new int[0];
             }
         }
         else {

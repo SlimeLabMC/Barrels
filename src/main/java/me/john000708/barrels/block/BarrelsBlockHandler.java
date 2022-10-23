@@ -1,6 +1,8 @@
 package me.john000708.barrels.block;
 
-import me.mrCookieSlime.Slimefun.cscorelib2.chat.ChatColors;
+import io.github.thebusybiscuit.slimefun4.libraries.dough.common.ChatColors;
+import io.github.thebusybiscuit.slimefun4.libraries.dough.items.CustomItemStack;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -10,7 +12,6 @@ import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.UnregisterReason;
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
-import me.mrCookieSlime.Slimefun.cscorelib2.item.CustomItem;
 
 class BarrelsBlockHandler implements SlimefunBlockHandler {
 
@@ -24,26 +25,22 @@ class BarrelsBlockHandler implements SlimefunBlockHandler {
     public boolean onBreak(Player player, Block b, SlimefunItem slimefunItem, UnregisterReason unregisterReason) {
 
         if(BlockStorage.getLocationInfo(b.getLocation(), "storedItems") != null &&  Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems")) > 1024){
-            player.sendMessage(ChatColors.color("&aSlimefun 4 &7> &e單元內物品須低於1024個 才能破壞!"));
+            player.sendMessage(ChatColors.color("&aSlimefun 4 &7> &e單元內物品須低於1024個才能破壞!"));
             return false;
         }
 
         BlockMenu inv = BlockStorage.getInventory(b);
 
-        if (inv.getItemInSlot(barrel.getInputSlots()[0]) != null) {
-            b.getWorld().dropItem(b.getLocation(), inv.getItemInSlot(barrel.getInputSlots()[0]));
-        }
+        inv.dropItems(b.getLocation(), barrel.getInputSlots());
+        inv.dropItems(b.getLocation(), barrel.getOutputSlots());
 
-        if (inv.getItemInSlot(barrel.getOutputSlots()[0]) != null) {
-            b.getWorld().dropItem(b.getLocation(), inv.getItemInSlot(barrel.getOutputSlots()[0]));
-        }
-
-        if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) {
+        String storedAmountString = BlockStorage.getLocationInfo(b.getLocation(), "storedItems");
+        if (storedAmountString == null) {
             return true;
         }
+        int storedAmount = Integer.parseInt(storedAmountString);
 
         ItemStack item = inv.getItemInSlot(22);
-        int storedAmount = Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
 
         while (storedAmount > 0) {
             int amount = item.getMaxStackSize();
@@ -56,8 +53,10 @@ class BarrelsBlockHandler implements SlimefunBlockHandler {
                 storedAmount = 0;
             }
 
-            b.getWorld().dropItem(b.getLocation(), new CustomItem(item, amount));
+            b.getWorld().dropItem(b.getLocation(), new CustomItemStack(item, amount));
         }
+        BlockStorage.addBlockInfo(b, "storedItems", null);
+        inv.replaceExistingItem(22, new CustomItemStack(Material.BARRIER, "&7空"), false);
 
         return true;
     }

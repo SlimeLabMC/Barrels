@@ -1,6 +1,8 @@
 package me.john000708.barrels.block;
 
 import io.github.thebusybiscuit.slimefun4.implementation.items.SimpleSlimefunItem;
+import io.github.thebusybiscuit.slimefun4.libraries.dough.common.ChatColors;
+import io.github.thebusybiscuit.slimefun4.libraries.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
 import me.john000708.barrels.Barrels;
 import me.mrCookieSlime.CSCoreLibPlugin.Configuration.Config;
@@ -9,17 +11,18 @@ import me.mrCookieSlime.Slimefun.Objects.Category;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.SlimefunItem;
 import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
 import me.mrCookieSlime.Slimefun.api.BlockStorage;
+import me.mrCookieSlime.Slimefun.api.Slimefun;
 import me.mrCookieSlime.Slimefun.api.SlimefunItemStack;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
-import me.mrCookieSlime.Slimefun.cscorelib2.chat.ChatColors;
-import me.mrCookieSlime.Slimefun.cscorelib2.item.CustomItem;
+import me.mrCookieSlime.Slimefun.api.inventory.DirtyChestMenu;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import javax.annotation.Nonnull;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -42,7 +45,6 @@ public abstract class Barrel extends SimpleSlimefunItem<BlockTicker> {
 
     public abstract String getInventoryTitle();
 
-    @Nonnull
     @Override
     public BlockTicker getItemHandler() {
         return new BlockTicker() {
@@ -54,9 +56,25 @@ public abstract class Barrel extends SimpleSlimefunItem<BlockTicker> {
 
             @Override
             public void tick(Block block, SlimefunItem slimefunItem, Config config) {
-                updateBarrel(block);
+                try{
+                    updateBarrel(block);
+                }catch (StackOverflowError e){
+                    Slimefun.getLogger().log(Level.SEVERE, "Barrel StackOverflowError " + block.getLocation());
+                    Slimefun.getLogger().log(Level.SEVERE, shortenedStackTrace(e, 20));
+                }
             }
         };
+    }
+
+    public static String shortenedStackTrace(Error e, int maxLines) {
+        StringWriter writer = new StringWriter();
+        e.printStackTrace(new PrintWriter(writer));
+        String[] lines = writer.toString().split("\n");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < Math.min(lines.length, maxLines); i++) {
+            sb.append(lines[i]).append("\n");
+        }
+        return sb.toString();
     }
 
     public int getCapacity(Block b) {
@@ -76,53 +94,31 @@ public abstract class Barrel extends SimpleSlimefunItem<BlockTicker> {
         return new int[] { 16 };
     }
 
-    private ItemStack getCapacityItem(Block b) {
-        StringBuilder bar = new StringBuilder();
+    public ItemStack getStoredItem(DirtyChestMenu inventory) {
+        ItemStack item = inventory.getItemInSlot(22);
+        return item.getType() == Material.BARRIER ? null : item;
+    }
 
-        // There's no need to box the integer.
-        String info = BlockStorage.getLocationInfo(b.getLocation(), "storedItems");
-        int storedItems = info == null ? 0 : Integer.parseInt(info);
-        float percentage = Math.round((float) storedItems / (float) getCapacity(b) * 100.0F);
+    protected void updateCapacityItem(BlockMenu inventory, int capacity, int storedItem) {
+        StringBuilder bar = new StringBuilder(64);
+        float rate = (float) storedItem / (float) capacity;
 
         bar.append("&8[");
 
-        if (percentage < 25) {
-            bar.append("&2");
-        }
-        else if (percentage < 50) {
-            bar.append("&a");
-        }
-        else if (percentage < 75) {
-            bar.append("&e");
-        }
-        else {
-            bar.append("&c");
+        switch ((int) (rate * 4)) {
+            case 0 -> bar.append("&2");
+            case 1 -> bar.append("&a");
+            case 2 -> bar.append("&e");
+            default -> bar.append("&c");
         }
 
-        int lines = 20;
+        String gauge = "::::::::::::::::::::";
+        bar.append(gauge);
+        bar.insert(bar.length() - gauge.length() + Math.max(0, Math.min(gauge.length(), (int) (gauge.length() * rate))), "&7");
 
-        for (int i = (int) percentage; i >= 5; i -= 5) {
-            bar.append(":");
-            lines--;
-        }
+        bar.append("&8] &7- ").append((int) (rate * 100.0F)).append("%");
 
-        bar.append("&7");
-
-        for (int i = 0; i < lines; i++) {
-            bar.append(":");
-        }
-
-        bar.append("&8] &7- ").append(percentage).append("%");
-
-        return new CustomItem(Material.CAULDRON, "&7" + BlockStorage.getLocationInfo(b.getLocation(), "storedItems") + "/" + getCapacity(b), ChatColors.color(bar.toString()));
-    }
-
-    public static ItemStack decreaseItem(ItemStack item, int amount) {
-        if (item == null) return null;
-        ItemStack clone = item.clone();
-        if (amount < clone.getAmount()) clone.setAmount(clone.getAmount() - amount);
-        else return null;
-        return clone;
+        inventory.replaceExistingItem(4, new CustomItemStack(Material.CAULDRON, "&7" + storedItem + "/" + capacity, bar.toString()), false);
     }
 
     void updateBarrel(Block b) {
@@ -132,118 +128,120 @@ public abstract class Barrel extends SimpleSlimefunItem<BlockTicker> {
             return;
         }
 
-        ItemStack capacityitem = inventory.getItemInSlot(22);
+        ItemStack storedItem = inventory.getItemInSlot(22);
 
-        if(capacityitem == null) {
+        if(storedItem == null) {
             //BlockStorage.addBlockInfo(b, "storedItems", null);
             Barrels.getInstance().getLogger().log(Level.SEVERE, "null capacity item detected Loc: " + b.getLocation().getBlockX() + " " + b.getLocation().getBlockY() + " " + b.getLocation().getBlockZ());
-            inventory.replaceExistingItem(4, new CustomItem(Material.BARRIER, erroritem), false);
-            inventory.replaceExistingItem(22, new CustomItem(Material.BARRIER, erroritem), false);
+            inventory.replaceExistingItem(4, new CustomItemStack(Material.BARRIER, erroritem), false);
+            inventory.replaceExistingItem(22, new CustomItemStack(Material.BARRIER, erroritem), false);
             return;
         }
 
-        if(capacityitem.hasItemMeta() && capacityitem.getItemMeta().hasLore()){
+        if(storedItem.hasItemMeta() && storedItem.getItemMeta().hasLore()){
 
             // Error detect
-            if(capacityitem.getItemMeta().hasDisplayName() && capacityitem.getItemMeta().getDisplayName().equals(erroritem)){
+            if(storedItem.getItemMeta().hasDisplayName() && storedItem.getItemMeta().getDisplayName().equals(erroritem)){
                 return;
             }
 
-            ItemMeta meta = capacityitem.getItemMeta();
+            ItemMeta meta = storedItem.getItemMeta();
             List<String> lore = meta.getLore();
             if(ChatColor.stripColor(lore.get(lore.size() - 1)).equals("")){
                 lore.remove(lore.size() - 1);
                 meta.setLore(lore);
-                capacityitem.setItemMeta(meta);
+                storedItem.setItemMeta(meta);
             }
+        }
+
+        String storedAmountInfo = BlockStorage.getLocationInfo(b.getLocation(), "storedItems");
+        int storedAmount = storedAmountInfo == null ? 0 : Integer.parseInt(storedAmountInfo);
+        int capacity = getCapacity(b);
+
+        if(storedItem.getType() == Material.BARRIER && storedAmount != 0) {
+            BlockStorage.addBlockInfo(b, "storedItems", null);
+            inventory.replaceExistingItem(22, new CustomItemStack(Material.BARRIER, "&7空"), false);
+            inventory.replaceExistingItem(16, new CustomItemStack(Material.AIR), false);
+            updateCapacityItem(inventory, capacity, 0);
+            return;
         }
 
         for (int slot : getInputSlots()) {
             if (inventory.getItemInSlot(slot) != null) {
                 ItemStack input = inventory.getItemInSlot(slot);
+
+                if (input.getType() == Material.BARRIER) {
+                    continue;
+                }
+
                 int amount = input.getAmount();
 
-                if (SlimefunUtils.isItemSimilar(input, capacityitem, true, false)) {
-                    if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) {
-                        BlockStorage.addBlockInfo(b, "storedItems", "0");
-                    }
-
-                    int storedAmount = Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
-
-                    if (storedAmount < getCapacity(b)) {
-                        if (storedAmount + amount > getCapacity(b)) {
-                            BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(getCapacity(b)));
-                            inventory.replaceExistingItem(slot, decreaseItem(inventory.getItemInSlot(slot), getCapacity(b) - storedAmount), false);
+                if (SlimefunUtils.isItemSimilar(input, getStoredItem(inventory), true, false)) {
+                    if (storedAmount < capacity) {
+                        if (storedAmount + amount > capacity) {
+                            input.setAmount(storedAmount + input.getAmount() - capacity);
+                            inventory.replaceExistingItem(slot, input, false);
+                            storedAmount = capacity;
                         }
                         else {
-                            BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(storedAmount + amount));
                             inventory.replaceExistingItem(slot, new ItemStack(Material.AIR), false);
+                            storedAmount += input.getAmount();
                         }
-                        inventory.replaceExistingItem(4, getCapacityItem(b), false);
+                        BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(storedAmount));
+                        updateCapacityItem(inventory, capacity, storedAmount);
                     }
                 }
-                else if (capacityitem.getType() == Material.BARRIER) {
-                    BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(amount));
-
+                else if (getStoredItem(inventory) == null) {
+                    storedAmount = input.getAmount();
+                    BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(storedAmount));
                     input.setAmount(input.getMaxStackSize());
                     inventory.replaceExistingItem(22, input, false);
                     inventory.replaceExistingItem(slot, new ItemStack(Material.AIR), false);
-                    inventory.replaceExistingItem(4, getCapacityItem(b), false);
+                    updateCapacityItem(inventory, capacity, storedAmount);
                 }
             }
         }
 
-        if (BlockStorage.getLocationInfo(b.getLocation(), "storedItems") == null) {
+        if (storedAmount == 0) {
             return;
         }
 
-        int stored = Integer.parseInt(BlockStorage.getLocationInfo(b.getLocation(), "storedItems"));
-        if(stored == 0) {
-            clear(b, inventory);
-            //Barrels.getInstance().getLogger().log(Level.INFO, "null capacity item detected & cleaned Loc: " + b.getLocation().getBlockX() + " " + b.getLocation().getBlockY() + " " + b.getLocation().getBlockZ());
-            return;
-        }
-        ItemStack output = inventory.getItemInSlot(22).clone();
+        ItemStack stored = getStoredItem(inventory);
+        if(stored == null) return;
 
-        if (inventory.getItemInSlot(getOutputSlots()[0]) != null && inventory.getItemInSlot(getOutputSlots()[0]).getType() != Material.AIR) {
-            if (!SlimefunUtils.isItemSimilar(inventory.getItemInSlot(getOutputSlots()[0]), output, true, false)) {
-                //Barrels.getInstance().getLogger().log(Level.WARNING, "4");
-                return;
+        for (int slot : getOutputSlots()) {
+            ItemStack requestedItem = inventory.getItemInSlot(slot);
+            ItemStack output = stored.clone();
+
+            int pushAmount = output.getMaxStackSize();
+
+            if (requestedItem == null || requestedItem.getType() == Material.AIR) {
+                pushAmount = Math.min(storedAmount, pushAmount);
+                output.setAmount(pushAmount);
+            }
+            else {
+                if (requestedItem.getAmount() == requestedItem.getMaxStackSize() ||
+                        !SlimefunUtils.isItemSimilar(requestedItem, output, true, false)) {
+                    continue;
+                }
+
+                pushAmount = Math.min(storedAmount, requestedItem.getMaxStackSize() - requestedItem.getAmount());
+                output.setAmount(requestedItem.getAmount() + pushAmount);
             }
 
-            int requested = output.getMaxStackSize() - inventory.getItemInSlot(getOutputSlots()[0]).getAmount();
-            output.setAmount(Math.min(stored, requested));
-        }
-        else {
-            output.setAmount(Math.min(stored, output.getMaxStackSize()));
-        }
+            inventory.replaceExistingItem(slot, output);
+            storedAmount -= pushAmount;
 
-        if (!inventory.fits(output, getOutputSlots())) {
-            //Barrels.getInstance().getLogger().log(Level.WARNING, "1");
-            return;
+
+            if (storedAmount <= 0) {
+                BlockStorage.addBlockInfo(b, "storedItems", null);
+                inventory.replaceExistingItem(22, new CustomItemStack(Material.BARRIER, "&7空"), false);
+            }
+            else {
+                BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(storedAmount));
+            }
+            updateCapacityItem(inventory, capacity, storedAmount);
         }
-
-        BlockStorage.addBlockInfo(b, "storedItems", String.valueOf(stored - output.getAmount()));
-        inventory.pushItem(output, getOutputSlots());
-
-        if((stored - output.getAmount()) <= 0){
-            clear(b, inventory);
-            return;
-        }else if (inventory.getItemInSlot(22).getType() == Material.AIR) {
-            //BlockStorage.addBlockInfo(b, "storedItems", null);
-            Barrels.getInstance().getLogger().log(Level.SEVERE, "air capacity item detected Loc: " + b.getLocation().getBlockX() + " " + b.getLocation().getBlockY() + " " + b.getLocation().getBlockZ());
-            inventory.replaceExistingItem(4, new CustomItem(Material.BARRIER, erroritem), false);
-            inventory.replaceExistingItem(22, new CustomItem(Material.BARRIER, erroritem), false);
-            return;
-        }
-
-        inventory.replaceExistingItem(4, getCapacityItem(b), false);
         //Barrels.getInstance().getLogger().log(Level.WARNING, "3");
-    }
-
-    public void clear(Block b, BlockMenu inventory){
-        BlockStorage.addBlockInfo(b, "storedItems", null);
-        inventory.replaceExistingItem(4, new CustomItem(Material.BARRIER, "&7空"), false);
-        inventory.replaceExistingItem(22, new CustomItem(Material.BARRIER, "&7空"), false);
     }
 }
